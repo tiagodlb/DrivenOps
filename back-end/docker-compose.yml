@@ -1,0 +1,57 @@
+version: '3'
+
+networks:
+  drivenops:
+    driver: bridge
+
+volumes:
+  pg_drivenops:
+  front_drivenops:
+
+services:
+  db_postgres:
+    image: postgres
+    container_name: db_postgres_drivenops
+    restart: always
+    ports:
+      - 1234:5432
+    networks:
+      - drivenops
+    volumes:
+      - pg_drivenops:/var/lib/postgresql/data
+    env_file:
+      - ./back-end/.env
+
+  node_app:
+    container_name: node_drivenops
+    build: back-end
+    ports:
+      - 5000:5000
+    networks:
+      - drivenops
+    env_file:
+      - back-end/.env
+    depends_on:
+      - db_postgres
+
+  react:
+    build: front-end
+    container_name: react_drivenops
+    networks:
+      - drivenops
+    volumes:
+      - react_drivenops:/var/www/html
+    
+    nginx:
+      build: ./nginx
+      container_name: nginx_drivenops
+      ports:
+        - 80:80
+      networks:
+        - drivenops
+      volumes:
+        - react_drivenops:/var/www/html
+      depends_on:
+        - react
+        - node_app
+        - db_postgres
